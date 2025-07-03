@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enspirion Professional Dashboard</title>
+    
+    <!-- Meta tags for PWA -->
+    <meta name="description" content="Professional energy management dashboard for PV portfolio monitoring">
+    <meta name="theme-color" content="#722F37">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/charts.css">
+    <link rel="stylesheet" href="assets/css/mobile.css">
+    
+    <!-- Preload critical JavaScript -->
+    <link rel="preload" href="assets/js/app.js" as="script">
+    <link rel="preload" href="assets/js/pse-api.js" as="script">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="enspirion-logo">
+                <span class="logo-icon">⚡</span>
+                <h2>Enspirion</h2>
+                <p>Professional Dashboard</p>
+            </div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loading-text">Łączenie z PSE API...</div>
+            <div class="loading-progress">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>⚡ Enspirion Professional Dashboard</h1>
+                    <div class="header-subtitle">Real-time Energy Management Portal</div>
+                </div>
+                <div class="header-right">
+                    <!-- Portfolio Configuration -->
+                    <div class="portfolio-config">
+                        <label for="portfolio-capacity">Portfolio:</label>
+                        <input 
+                            type="number" 
+                            id="portfolio-capacity" 
+                            class="portfolio-input" 
+                            value="25.5" 
+                            min="0" 
+                            max="1000" 
+                            step="0.1"
+                            placeholder="MW"
+                        >
+                        <span>MW</span>
+                        <button id="save-portfolio" class="save-btn" title="Zapisz konfigurację">💾</button>
+                    </div>
+                    
+                    <!-- Status Indicators -->
+                    <div class="status-indicators">
+                        <div class="status-item">
+                            <span class="status-dot" id="api-status-dot"></span>
+                            <span id="api-status-text">Łączenie...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-dot" id="data-status-dot"></span>
+                            <span id="last-update-text">Aktualizacja: --:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="dashboard-nav">
+            <div class="nav-container">
+                <button class="nav-tab active" data-view="overview">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Przegląd</span>
+                </button>
+                <button class="nav-tab" data-view="forecasts">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-label">Prognozy</span>
+                </button>
+                <button class="nav-tab" data-view="risk">
+                    <span class="nav-icon">🎯</span>
+                    <span class="nav-label">Ryzyko</span>
+                </button>
+                <button class="nav-tab" data-view="redispatch">
+                    <span class="nav-icon">⚠️</span>
+                    <span class="nav-label">Redysponowanie</span>
+                </button>
+                <button class="nav-tab" data-view="analytics">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">Analiza</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Overview Section -->
+            <section id="overview-section" class="dashboard-section active">
+                <!-- KPIs Row -->
+                <div class="kpis-section">
+                    <div class="kpi-card revenue">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">💰</span>
+                            <span class="kpi-title">Przychód dziś</span>
+                        </div>
+                        <div class="kpi-value" id="revenue-today">--,--- PLN</div>
+                        <div class="kpi-subtitle">Szacowany dzienny przychód</div>
+                        <div class="kpi-trend" id="revenue-trend">
+                            <span class="trend-icon">→</span>
+                            <span class="trend-value">+0.0%</span>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card portfolio">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">⚡</span>
+                            <span class="kpi-title">Generacja portfolio</span>
+                        </div>
+                        <div class="kpi-value" id="portfolio-output">--.- MW</div>
+                        <div class="kpi-subtitle">Aktualna generacja</div>
+                        <div class="kpi-trend" id="portfolio-trend">
+                            <span class="trend-icon">→</span>
+                            <span class="trend-value">--.-%</span>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card risk">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">🎯</span>
+                            <span class="kpi-title">Ryzyko redysponowania</span>
+                        </div>
+                        <div class="kpi-value" id="risk-level">OBLICZANIE</div>
+                        <div class="kpi-subtitle">Następne 6 godzin</div>
+                        <div class="kpi-trend" id="risk-trend">
+                            <span class="trend-icon">→</span>
+                            <span class="trend-value">-- alertów</span>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card market">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">📊</span>
+                            <span class="kpi-title">Udział w rynku</span>
+                        </div>
+                        <div class="kpi-value" id="market-share">--.---%</div>
+                        <div class="kpi-subtitle">Portfolio vs całkowita PV w KSE</div>
+                        <div class="kpi-trend" id="market-trend">
+                            <span class="trend-icon">→</span>
+                            <span class="trend-value">vs avg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Charts Grid -->
+                <div class="charts-grid">
+                    <!-- Chart 1: Prognoza vs Zapotrzebowanie -->
+                    <div class="chart-container forecast-chart">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="chart-icon">📈</span>
+                                <span>Prognoza Generacji vs Zapotrzebowanie KSE</span>
+                            </div>
+                            <div class="chart-controls">
+                                <button class="chart-btn active" data-period="today">Dziś</button>
+                                <button class="chart-btn" data-period="tomorrow">Jutro</button>
+                                <button class="chart-btn" data-period="week">7 dni</button>
+                                <button class="refresh-chart-btn" data-chart="forecast">🔄</button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="forecast-chart" width="800" height="300"></canvas>
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <span class="legend-color" data-color="demand"></span>
+                                    <span>Zapotrzebowanie KSE</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color" data-color="pv-forecast"></span>
+                                    <span>Prognoza PV</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color" data-color="pv-actual"></span>
+                                    <span>Rzeczywista PV</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-loading" id="forecast-loading">
+                            <div class="loading-spinner small"></div>
+                            <span>Ładowanie danych prognozy...</span>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Risk Heatmap -->
+                    <div class="chart-container risk-chart">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="chart-icon">🎯</span>
+                                <span>Ryzyko Wezwania - Heatmapa</span>
+                            </div>
+                            <div class="chart-controls">
+                                <button class="chart-btn active" data-period="7d">7 dni</button>
+                                <button class="chart-btn" data-period="14d">14 dni</button>
+                                <button class="refresh-chart-btn" data-chart="risk">🔄</button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <div class="risk-heatmap-container">
+                                <div class="risk-heatmap" id="risk-heatmap">
+                                    <!-- Risk cells will be generated dynamically -->
+                                </div>
+                                <div class="risk-axes">
+                                    <div class="risk-y-axis" id="risk-y-axis">
+                                        <!-- Day labels -->
+                                    </div>
+                                    <div class="risk-x-axis" id="risk-x-axis">
+                                        <!-- Hour labels -->
+                                    </div>
+                                </div>
+                                <div class="risk-legend">
+                                    <div class="legend-title">Poziom ryzyka:</div>
+                                    <div class="risk-legend-items">
+                                        <div class="risk-legend-item">
+                                            <span class="risk-color low"></span>
+                                            <span>Niskie (0-25%)</span>
+                                        </div>
+                                        <div class="risk-legend-item">
+                                            <span class="risk-color medium"></span>
+                                            <span>Średnie (25-50%)</span>
+                                        </div>
+                                        <div class="risk-legend-item">
+                                            <span class="risk-color high"></span>
+                                            <span>Wysokie (50-75%)</span>
+                                        </div>
+                                        <div class="risk-legend-item">
+                                            <span class="risk-color critical"></span>
+                                            <span>Krytyczne (75-100%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-loading" id="risk-loading">
+                            <div class="loading-spinner small"></div>
+                            <span>Kalkulowanie ryzyka...</span>
+                        </div>
+                    </div>
+
+                    <!-- Chart 3: PV Generation % + Portfolio -->
+                    <div class="chart-container pv-chart">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="chart-icon">⚡</span>
+                                <span>Generacja PV (%) + Portfolio Performance</span>
+                            </div>
+                            <div class="chart-controls">
+                                <button class="chart-btn active" data-period="realtime">Real-time</button>
+                                <button class="chart-btn" data-period="today">Dziś</button>
+                                <button class="chart-btn" data-period="yesterday">Wczoraj</button>
+                                <button class="refresh-chart-btn" data-chart="pv">🔄</button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="pv-chart" width="800" height="300"></canvas>
+                            <div class="pv-metrics">
+                                <div class="metric-row">
+                                    <span class="metric-label">PV w KSE:</span>
+                                    <span class="metric-value" id="pv-percentage">--.-%</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Portfolio:</span>
+                                    <span class="metric-value" id="portfolio-generation">--.- MW</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Sprawność:</span>
+                                    <span class="metric-value" id="portfolio-efficiency">--.-%</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">vs Średnia:</span>
+                                    <span class="metric-value" id="efficiency-comparison">+-.-%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-loading" id="pv-loading">
+                            <div class="loading-spinner small"></div>
+                            <span>Pobieranie danych generacji...</span>
+                        </div>
+                    </div>
+
+                    <!-- Chart 4: Redispatch Timeline -->
+                    <div class="chart-container redispatch-chart">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="chart-icon">⚠️</span>
+                                <span>Historia Nierynkowego Redysponowania</span>
+                            </div>
+                            <div class="chart-controls">
+                                <button class="chart-btn active" data-period="30d">30 dni</button>
+                                <button class="chart-btn" data-period="90d">90 dni</button>
+                                <button class="chart-btn" data-period="year">Rok</button>
+                                <button class="refresh-chart-btn" data-chart="redispatch">🔄</button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <div class="redispatch-timeline-container">
+                                <div class="timeline-chart" id="redispatch-timeline">
+                                    <!-- Timeline events will be generated dynamically -->
+                                </div>
+                                <div class="redispatch-histogram" id="redispatch-histogram">
+                                    <!-- Histogram bars will be generated dynamically -->
+                                </div>
+                            </div>
+                            <div class="redispatch-summary">
+                                <div class="summary-card">
+                                    <div class="summary-value" id="redispatch-events">--</div>
+                                    <div class="summary-label">Zdarzenia</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-value" id="energy-lost">--- MWh</div>
+                                    <div class="summary-label">Utracona energia</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-value" id="financial-loss">--,--- PLN</div>
+                                    <div class="summary-label">Straty finansowe</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-value" id="avg-duration">-- min</div>
+                                    <div class="summary-label">Średni czas</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-loading" id="redispatch-loading">
+                            <div class="loading-spinner small"></div>
+                            <span>Analizowanie historii redysponowania...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Other Sections (Hidden by default) -->
+            <section id="forecasts-section" class="dashboard-section">
+                <div class="section-header">
+                    <h2>📈 Szczegółowe Prognozy</h2>
+                    <div class="section-description">
+                        Analiza prognoz generacji PV i zapotrzebowania KSE z uwzględnieniem czynników pogodowych
+                    </div>
+                </div>
+                <div class="forecasts-content">
+                    <!-- Detailed forecast charts will be added here -->
+                    <div class="coming-soon">
+                        <span class="icon">🚧</span>
+                        <h3>W przygotowaniu</h3>
+                        <p>Szczegółowe prognozy będą dostępne w następnej wersji</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="risk-section" class="dashboard-section">
+                <div class="section-header">
+                    <h2>🎯 Analiza Ryzyka</h2>
+                    <div class="section-description">
+                        Zaawansowana analiza czynników ryzyka redysponowania z algorytmami predykcyjnymi
+                    </div>
+                </div>
+                <div class="risk-content">
+                    <!-- Risk analysis tools will be added here -->
+                    <div class="coming-soon">
+                        <span class="icon">🚧</span>
+                        <h3>W przygotowaniu</h3>
+                        <p>Zaawansowana analiza ryzyka będzie dostępna w następnej wersji</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="redispatch-section" class="dashboard-section">
+                <div class="section-header">
+                    <h2>⚠️ Redysponowanie</h2>
+                    <div class="section-description">
+                        Szczegółowa analiza zdarzeń redysponowania z klasyfikacją przyczyn i wpływu na biznes
+                    </div>
+                </div>
+                <div class="redispatch-content">
+                    <!-- Redispatch analysis tools will be added here -->
+                    <div class="coming-soon">
+                        <span class="icon">🚧</span>
+                        <h3>W przygotowaniu</h3>
+                        <p>Szczegółowa analiza redysponowania będzie dostępna w następnej wersji</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="analytics-section" class="dashboard-section">
+                <div class="section-header">
+                    <h2>📋 Analiza i Raporty</h2>
+                    <div class="section-description">
+                        Narzędzia do generowania raportów i analizy trendów biznesowych
+                    </div>
+                </div>
+                <div class="analytics-content">
+                    <!-- Analytics tools will be added here -->
+                    <div class="coming-soon">
+                        <span class="icon">🚧</span>
+                        <h3>W przygotowaniu</h3>
+                        <p>Narzędzia analityczne będą dostępne w następnej wersji</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <div class="footer-actions">
+                        <button class="action-btn btn-primary" id="refresh-all-btn">
+                            <span class="btn-icon">🔄</span>
+                            <span class="btn-text">Odśwież wszystko</span>
+                        </button>
+                        <button class="action-btn btn-secondary" id="export-report-btn">
+                            <span class="btn-icon">📊</span>
+                            <span class="btn-text">Eksport raportu</span>
+                        </button>
+                        <button class="action-btn btn-secondary" id="settings-btn">
+                            <span class="btn-icon">⚙️</span>
+                            <span class="btn-text">Ustawienia</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="footer-right">
+                    <div class="footer-info">
+                        <div class="app-info">
+                            <span class="app-name">Enspirion Professional Dashboard</span>
+                            <span class="app-version">v2.0.0</span>
+                        </div>
+                        <div class="system-info">
+                            <span class="api-info">PSE API: v1.4.35</span>
+                            <span class="update-info">Ostatnia aktualizacja: <span id="footer-last-update">--:--</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚠️ Błąd systemu</h3>
+                <button class="modal-close" id="error-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="error-message">Wystąpił nieoczekiwany błąd.</p>
+                <div class="error-details" id="error-details" style="display: none;">
+                    <details>
+                        <summary>Szczegóły techniczne</summary>
+                        <pre id="error-stack"></pre>
+                    </details>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn btn-primary" id="retry-btn">Spróbuj ponownie</button>
+                <button class="action-btn btn-secondary" id="dismiss-error-btn">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Ustawienia Dashboard</h3>
+                <button class="modal-close" id="settings-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>Portfolio</h4>
+                    <div class="setting-row">
+                        <label for="settings-capacity">Całkowita moc zainstalowana (MW):</label>
+                        <input type="number" id="settings-capacity" value="25.5" min="0" max="1000" step="0.1">
+                    </div>
+                    <div class="setting-row">
+                        <label for="settings-efficiency">Średnia sprawność (%):</label>
+                        <input type="number" id="settings-efficiency" value="85" min="50" max="100" step="1">
+                    </div>
+                    <div class="setting-row">
+                        <label for="settings-availability">Dostępność techniczna (%):</label>
+                        <input type="number" id="settings-availability" value="95" min="80" max="100" step="1">
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>Biznes</h4>
+                    <div class="setting-row">
+                        <label for="settings-price">Średnia cena energii (PLN/MWh):</label>
+                        <input type="number" id="settings-price" value="300" min="100" max="1000" step="10">
+                    </div>
+                    <div class="setting-row">
+                        <label for="settings-penalty">Kara za redysponowanie (PLN/MWh):</label>
+                        <input type="number" id="settings-penalty" value="50" min="0" max="200" step="5">
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>System</h4>
+                    <div class="setting-row">
+                        <label for="settings-refresh">Odświeżanie danych (sekundy):</label>
+                        <select id="settings-refresh">
+                            <option value="30">30 sekund</option>
+                            <option value="60" selected>1 minuta</option>
+                            <option value="300">5 minut</option>
+                            <option value="600">10 minut</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>
+                            <input type="checkbox" id="settings-notifications" checked>
+                            Powiadomienia o alertach
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn btn-primary" id="save-settings-btn">Zapisz ustawienia</button>
+                <button class="action-btn btn-secondary" id="cancel-settings-btn">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/pse-api.js"></script>
+    <script src="assets/js/data-processor.js"></script>
+    <script src="assets/js/chart-manager.js"></script>
+    <script src="assets/js/risk-calculator.js"></script>
+    <script src="assets/js/portfolio-calculator.js"></script>
+    <script src="assets/js/ui-manager.js"></script>
+    <script src="assets/js/app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
