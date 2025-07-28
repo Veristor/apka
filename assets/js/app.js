@@ -33,9 +33,9 @@ class EnspirionApp {
         
         // Configuration
         this.config = {
-            refreshInterval: 60000, // 5 seconds
-            apiTimeout: 10000,     // 10 seconds
-            retryDelay: 2000      // 2 seconds
+            refreshInterval: 60000, // 60 seconds
+            apiTimeout: 100000,     // 100 seconds
+            retryDelay: 120000      // 2 min 
         };
         
         console.log('🚀 Enspirion Dashboard initializing...');
