@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test PKD Forecast</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      padding: 2rem;
+    }
+    #pkd-chart-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #722F37;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="pkd-chart-container">
+    <h2>Prognozy z 5-letniego planu koordynacyjnego (PKD)</h2>
+    <canvas id="pkd-chart" height="400"></canvas>
+  </div>
+
+  <script>
+    const PSEAPI = {
+      baseUrl: 'https://apimpdv2-bmgdhhajexe8aade.a01.azurefd.net/api/',
+      async request(endpoint, params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const url = this.baseUrl + endpoint + (query ? '?' + query : '');
+        try {
+          const res = await fetch(url);
+          const json = await res.json();
+          return json;
+        } catch (err) {
+          console.error('API error:', err);
+          return { value: [] };
+        }
+      }
+    };
+
+    const PKDForecast = {
+      endpoint: 'pk5l-wp',
+      interval: 15 * 60 * 1000,
+      chart: null,
+
+      async fetchData() {
+        const today = new Date().toISOString().split('T')[0];
+        const params = {
+          '$filter': `business_date eq '${today}'`,
+          '$orderby': 'plan_dtime asc',
+          '$first': 500
+        };
+        const data = await PSEAPI.request(this.endpoint, params);
+        return data?.value || [];
+      },
+
+      async renderChart() {
+        const rawData = await this.fetchData();
+        const labels = rawData.map(row => new Date(row.plan_dtime).toLocaleString('pl-PL'));
+        const pvForecast = rawData.map(row => parseFloat(row.fcst_pv_tot_gen || 0));
+        const demandForecast = rawData.map(row => parseFloat(row.grid_demand_fcst || 0));
+
+        const ctx = document.getElementById('pkd-chart').getContext('2d');
+        if (this.chart) this.chart.destroy();
+        this.chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Prognoza PV (MW)',
+                data: pvForecast,
+                borderColor: '#00aa44',
+                backgroundColor: 'rgba(0,170,68,0.1)',
+                fill: true
+              },
+              {
+                label: 'Prognoza zapotrzebowania (MW)',
+                data: demandForecast,
+                borderColor: '#0066cc',
+                backgroundColor: 'rgba(0,102,204,0.1)',
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: { display: true, text: 'Prognozy: PV vs Zapotrzebowanie (PKD)' },
+              legend: { position: 'bottom' }
+            },
+            scales: {
+              x: { ticks: { maxRotation: 90, minRotation: 45 } },
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      },
+
+      start() {
+        this.renderChart();
+        setInterval(() => this.renderChart(), this.interval);
+      }
+    };
+
+    // Start forecasting chart on load
+    PKDForecast.start();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Skumulowana generacja i zapotrzebowanie KSE</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    canvas { max-width: 100%; height: 500px; }
+  </style>
+</head>
+<body>
+
+<h2>Skumulowana generacja i zapotrzebowanie KSE (PSE)</h2>
+<canvas id="forecast-chart"></canvas>
+
+<script>
+  let chartInstance;
+
+  async function fetchAndRenderChart() {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const url = `https://v2.api.raporty.pse.pl/api/pdgobpkd?$filter=business_date eq '${today}'&$orderby=business_date asc&$first=20000`;
+
+      const response = await fetch(url);
+      const json = await response.json();
+      const raw = json.value;
+
+      const parsed = raw.map(row => {
+        const d = new Date(row.dtime);
+        const t = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        const toFloat = v => parseFloat(v) || 0;
+
+        return {
+          time: t,
+          gen_rb: toFloat(row.gen_jgw_zak_1) + toFloat(row.gen_jgw_zak_2) +
+                  toFloat(row.gen_jgm_zak_1) + toFloat(row.gen_jgm_zak_2) +
+                  toFloat(row.gen_jgz_zak_1) + toFloat(row.gen_jgz_zak_2) + toFloat(row.gen_jgz_zak_3),
+          gen_spoza_rb: toFloat(row.gen_jga) + toFloat(row.gen_jgo),
+          gen_fv: toFloat(row.gen_fv),
+          gen_wi: toFloat(row.gen_wi),
+          demand: toFloat(row.kse_pow_dem)
+        };
+      });
+
+      const labels = parsed.map(p => p.time);
+
+      const datasets = [
+        {
+          label: 'JW RB (zak.)',
+          data: parsed.map(p => p.gen_rb),
+          backgroundColor: 'rgba(0, 100, 255, 0.6)',
+          borderColor: 'rgba(0, 100, 255, 1)',
+          fill: 'origin',
+          order: 4
+        },
+        {
+          label: 'Spoza RB',
+          data: parsed.map(p => p.gen_spoza_rb),
+          backgroundColor: 'rgba(0, 200, 200, 0.6)',
+          borderColor: 'rgba(0, 200, 200, 1)',
+          fill: '-1',
+          order: 3
+        },
+        {
+          label: 'PV',
+          data: parsed.map(p => p.gen_fv),
+          backgroundColor: 'rgba(0, 255, 0, 0.6)',
+          borderColor: 'rgba(0, 255, 0, 1)',
+          fill: '-1',
+          order: 2
+        },
+        {
+          label: 'WIATR',
+          data: parsed.map(p => p.gen_wi),
+          backgroundColor: 'rgba(100, 100, 255, 0.6)',
+          borderColor: 'rgba(100, 100, 255, 1)',
+          fill: '-1',
+          order: 1
+        },
+        {
+          label: 'Zapotrzebowanie KSE',
+          data: parsed.map(p => p.demand),
+          borderColor: 'red',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.1,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          order: 0
+        }
+      ];
+
+      if (chartInstance) chartInstance.destroy();
+
+      const ctx = document.getElementById('forecast-chart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          stacked: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  label += context.parsed.y.toFixed(0) + ' MW';
+                  return label;
+                }
+              }
+            },
+            title: {
+              display: true,
+              text: 'Skumulowana generacja i zapotrzebowanie KSE (PSE)'
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Godzina' },
+              ticks: { maxRotation: 90, minRotation: 45 }
+            },
+            y: {
+              title: { display: true, text: 'Moc [MW]' },
+              stacked: true,
+              ticks: {
+                callback: function(value) {
+                  return value.toLocaleString('pl-PL') + ' MW';
+                }
+              }
+            }
+          }
+        }
+      });
+
+    } catch (err) {
+      console.error('❌ Błąd ładowania danych z API PSE:', err);
+    }
+  }
+
+  fetchAndRenderChart();
+  setInterval(fetchAndRenderChart, 10000);
+</script>
+
+</body>
+</html>
