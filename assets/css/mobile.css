@@ -436,3 +436,107 @@
         overscroll-behavior: contain;
     }
 }
+
+/* ========================================
+   MOBILE CHART FIXES
+======================================== */
+
+/* Poprawka dla wszystkich wykresów na mobile */
+@media (max-width: 768px) {
+    /* Kontener wykresów - wymuszenie wysokości */
+    .chart-container {
+        height: auto !important;
+        min-height: 300px !important;
+        max-height: 400px !important;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    /* Canvas wykresów - responsywność */
+    .chart-container canvas {
+        max-height: 350px !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    
+    /* Specyficzne poprawki dla wykresu generacji */
+    #generation-forecast-chart {
+        min-height: 280px !important;
+        max-height: 350px !important;
+    }
+    
+    /* Risk heatmap - lepsze skalowanie */
+    #risk-heatmap-grid {
+        display: grid !important;
+        grid-template-columns: auto repeat(12, 1fr) !important; /* 12 godzin zamiast 24 */
+        grid-template-rows: repeat(8, minmax(25px, 1fr)) !important;
+        gap: 1px !important;
+        height: auto !important;
+        min-height: 250px !important;
+        font-size: 8px !important;
+    }
+    
+    .risk-cell {
+        font-size: 8px !important;
+        min-width: 20px !important;
+        min-height: 25px !important;
+    }
+    
+    /* Ukryj co drugą godzinę w labelach */
+    .risk-hour-label:nth-child(even) {
+        display: none;
+    }
+    
+    /* PV Distribution chart */
+    #pv-distribution-chart {
+        min-height: 280px !important;
+    }
+    
+    /* Usuń position absolute dla statystyk */
+    .pv-statistics {
+        position: static !important;
+        width: 100% !important;
+        margin-top: var(--spacing-md) !important;
+        background: var(--bg-secondary) !important;
+        padding: var(--spacing-md) !important;
+    }
+    
+    /* Chart content padding */
+    .chart-content {
+        padding: var(--spacing-md) !important;
+        position: relative !important;
+        height: auto !important;
+        min-height: 300px !important;
+    }
+}
+
+/* Małe telefony */
+@media (max-width: 480px) {
+    /* Jeszcze mniejsze wykresy */
+    .chart-container {
+        min-height: 250px !important;
+        max-height: 320px !important;
+    }
+    
+    /* Risk heatmap - tylko 8 godzin */
+    #risk-heatmap-grid {
+        grid-template-columns: auto repeat(8, 1fr) !important;
+    }
+    
+    /* Ukryj 3/4 godzin */
+    .risk-hour-label:not(:nth-child(4n+1)) {
+        display: none;
+    }
+    
+    /* Mniejsze komórki */
+    .risk-cell {
+        font-size: 6px !important;
+        min-width: unset !important;
+    }
+}
+
+/* Landscape orientation fix */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chart-container {
+        max-height: 280px !important;
+    }
+}
