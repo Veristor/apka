@@ -33,7 +33,7 @@ class EnspirionApp {
         
         // Configuration
         this.config = {
-            refreshInterval: 5000, // 5 seconds
+            refreshInterval: 60000, // 5 seconds
             apiTimeout: 10000,     // 10 seconds
             retryDelay: 2000      // 2 seconds
         };
