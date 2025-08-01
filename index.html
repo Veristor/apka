@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="assets/css/charts.css">
     <link rel="stylesheet" href="assets/css/mobile.css">
     <link rel="stylesheet" href="assets/css/engineering.css">
+    <link rel="stylesheet" href="assets/css/analysis.css">
     
     <!-- Preload critical JavaScript -->
     <link rel="preload" href="assets/js/app.js" as="script">
@@ -143,7 +144,7 @@
                     <div class="kpi-card technical">
                         <div class="kpi-header">
                             <span class="kpi-icon">📊</span>
-                            <span class="kpi-title">Pokrycie przez PV</span>
+                            <span class="kpi-title">Udział PV</span>
                         </div>
                         <div class="kpi-value" id="pv-percentage">--.-%</div>
                         <div class="kpi-subtitle">Pokrycie zapotrzebowania przez PV</div>
@@ -177,7 +178,7 @@
         </div>
     </div>
     <div class="chart-content">
-        <canvas id="generation-forecast-chart" width="800" height="300"></canvas>
+        <canvas id="generation-forecast-chart"></canvas>
     </div>
 </div>
 
@@ -225,6 +226,7 @@
 
 
                 <!-- Chart 5 Ryzyka - Dodaj po wykresie "Ograniczenia Przesyłowe" -->
+<!-- Podmień całą sekcję risk-assessment-chart na: -->
 <div class="chart-container risk-assessment-chart">
     <div class="chart-header">
         <div class="chart-title">
@@ -238,9 +240,12 @@
         </div>
     </div>
     <div class="chart-content">
-        <div id="risk-assessment-container">
-            <!-- Heat map 24h x 7 dni -->
-            <div id="risk-heatmap-grid" class="risk-heatmap"></div>
+        <div id="risk-assessment-wrapper">
+            <!-- Scrollowalny kontener tylko dla mapy -->
+            <div id="risk-assessment-container">
+                <div id="risk-heatmap-grid" class="risk-heatmap"></div>
+            </div>
+            <!-- Legenda poza scrollem -->
             <div class="risk-legend">
                 <div class="legend-title">Poziom Ryzyka</div>
                 <div class="risk-legend-items">
@@ -262,47 +267,42 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div id="risk-details" class="risk-details">
-            <h4>Analiza Ryzyka</h4>
-            <div id="risk-score-display" class="risk-score-display">
-                <div class="total-score">--</div>
-                <div class="risk-level">Wybierz godzinę</div>
-            </div>
-            <div id="risk-components" class="risk-components">
-                <!-- Dynamicznie wypełniane -->
+            <!-- Panel szczegółów -->
+            <div id="risk-details" class="risk-details">
+                <h4>Analiza Ryzyka</h4>
+                <div class="risk-info-message">
+                    💡 Kliknij na dowolną komórkę w mapie ryzyka, aby zobaczyć szczegółową analizę
+                </div>
             </div>
         </div>
     </div>
 </div>
-
                 <!-- Real-time Data Table -->
                 <div class="data-table-container">
-                    <div class="table-header">
-                        <h3>📊 Dane Real-time</h3>
-                        <div class="table-controls">
-                            <button class="btn-small" id="export-data">📥 Export CSV</button>
-                            <button class="btn-small" id="toggle-auto-scroll">📌 Auto-scroll</button>
-                        </div>
-                    </div>
-                    <div class="table-wrapper">
-                        <table class="realtime-table" id="realtime-data-table">
-                            <thead>
-                                <tr>
-                                    <th>Czas</th>
-                                    <th>Gen. PV [MW]</th>
-                                    <th>Zapot. KSE [MW]</th>
-                                    <th>PV Share [%]</th>
-                                    <th>Gradient [MW/min]</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="realtime-tbody">
-                                <!-- Dynamically populated -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    <div class="table-header">
+        <h3>📊 Dane Real-time</h3>
+        <div class="table-controls">
+            <button class="btn-small" id="export-data">📥 Export CSV</button>
+            <button class="btn-small" id="toggle-auto-scroll">📌 Auto-scroll</button>
+        </div>
+    </div>
+    <div class="table-wrapper">
+        <table class="realtime-table">
+            <thead>
+                <tr>
+                    <th>Czas</th>
+                    <th>Gen. PV [MW]</th>
+                    <th>Zapot. KSE [MW]</th>
+                    <th>Udział PV [%]</th>
+                    <th>Gradient [MW/min]</th>
+                </tr>
+            </thead>
+            <tbody id="realtime-tbody">
+                <!-- Dynamically populated -->
+            </tbody>
+        </table>
+    </div>
+</div>
             </section>
 
             <!-- Other Sections (Hidden by default) -->
@@ -359,37 +359,44 @@
         
         <!-- Statystyki prognoz -->
         <div class="forecast-statistics">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">☀️</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Prognozowana energia PV</div>
-                        <div class="stat-value" id="forecast-total-pv">-- GWh</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">💨</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Prognozowana energia wiatrowa</div>
-                        <div class="stat-value" id="forecast-total-wind">-- GWh</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🔋</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Średni udział OZE</div>
-                        <div class="stat-value" id="forecast-avg-renewable">--%</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📈</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Szczyt zapotrzebowania</div>
-                        <div class="stat-value" id="forecast-peak-demand">-- MW</div>
-                    </div>
-                </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">☀️</div>
+            <div class="stat-content">
+                <div class="stat-value" id="forecast-total-pv">-- GWh</div>
+                <div class="stat-label">Prognozowana energia PV</div>
+                <div class="stat-subtitle">Suma dla okresu</div>
             </div>
         </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">💨</div>
+            <div class="stat-content">
+                <div class="stat-value" id="forecast-total-wind">-- GWh</div>
+                <div class="stat-label">Prognozowana energia wiatrowa</div>
+                <div class="stat-subtitle">Suma dla okresu</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">🔋</div>
+            <div class="stat-content">
+                <div class="stat-value" id="forecast-avg-renewable">--%</div>
+                <div class="stat-label">Średni udział OZE</div>
+                <div class="stat-subtitle">Średnia z okresu</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <div class="stat-value" id="forecast-peak-demand">-- MW</div>
+                <div class="stat-label">Szczyt zapotrzebowania</div>
+                <div class="stat-subtitle">Najwyższa wartość</div>
+            </div>
+        </div>
+    </div>
+</div>
         
         <!-- Tabela szczegółowa -->
         <div class="forecast-table-container">
@@ -424,12 +431,78 @@
                     </div>
                 </div>
                 <div class="constraints-content">
-                    <!-- Constraints analysis will be added here -->
-                    <div class="coming-soon">
-                        <span class="icon">🚧</span>
-                        <h3>W przygotowaniu</h3>
-                        <p>Szczegółowa analiza ograniczeń będzie dostępna wkrótce</p>
-                    </div>
+    <!-- Main Chart Container -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>📊 Rezerwa Wymagana vs Prognozowana</h3>
+            <div class="chart-controls">
+                <button class="btn-small" onclick="chartManager.exportConstraintsData()">📥 Export</button>
+                <button class="btn-small" onclick="chartManager.refreshConstraintsChart()">🔄 Odśwież</button>
+            </div>
+        </div>
+        <div id="constraints-chart" class="chart-container"></div>
+    </div>
+    
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <div class="stat-label">Średni Margines</div>
+                <div class="stat-value" id="avg-margin">-- MW</div>
+                <div class="stat-subtitle">Średnia z okresu</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-content">
+                <div class="stat-label">Min. Margines</div>
+                <div class="stat-value" id="min-margin">-- MW</div>
+                <div class="stat-subtitle">Najniższy w okresie</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-content">
+                <div class="stat-label">Pokrycie Rezerwy</div>
+                <div class="stat-value" id="coverage-percent">--%</div>
+                <div class="stat-subtitle">Stosunek rez./wym.</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">⏰</div>
+            <div class="stat-content">
+                <div class="stat-label">Krytyczna Godzina</div>
+                <div class="stat-value" id="critical-hour">--:--</div>
+                <div class="stat-subtitle">Najniższy margines</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Risk Analysis -->
+    <div class="risk-analysis-card">
+        <h3>🔍 Analiza Ryzyka Niedoboru Rezerwy</h3>
+        <div id="risk-summary" class="risk-summary">
+            <div class="loading-spinner">Ładowanie analizy...</div>
+        </div>
+        
+        <!-- Risk Timeline -->
+        <div class="risk-timeline" id="risk-timeline">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+    
+    <!-- Alerts History -->
+    <div class="alerts-history-card">
+        <h3>📋 Historia Alertów (24h)</h3>
+        <div id="constraints-alerts-list" class="alerts-list">
+            <div class="no-alerts">Ładowanie historii alertów...</div>
+        </div>
+    </div>
+</div>
                 </div>
             </section>
 
@@ -483,7 +556,7 @@
                         </button>
                         <label class="auto-refresh-toggle">
                             <input type="checkbox" id="auto-refresh" checked>
-                            <span>Auto-refresh (60 sec)</span>
+                            <span>Auto-refresh (30s)</span>
                         </label>
                     </div>
                 </div>
@@ -540,9 +613,9 @@
                         <label for="settings-refresh">Częstotliwość odświeżania:</label>
                         <select id="settings-refresh">
                             <option value="1000">1 sekunda</option>
-                            <option value="5000" selected>5 sekund</option>
+                            <option value="5000">5 sekund</option>
                             <option value="10000">10 sekund</option>
-                            <option value="30000">30 sekund</option>
+                            <option value="30000" selected>30 sekund</option>
                             <option value="60000">1 minuta</option>
                         </select>
                     </div>
@@ -594,7 +667,6 @@
     <!-- JavaScript Files -->
     <!-- WAŻNE: Najpierw Chart.js z CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="assets/js/config.js"></script>
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/pse-api.js"></script>
